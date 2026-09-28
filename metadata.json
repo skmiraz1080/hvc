@@ -1,0 +1,6 @@
+{
+  "name": "হবিরবাড়ি ভলেন্টিয়ার্স ক্লাব",
+  "description": "হবিরবাড়ি ভলেন্টিয়ার্স ক্লাব (Hobirbari Volunteers Club) - ১০ জন সদস্যের হিসাব ও সঞ্চয় ব্যবস্থাপনা অ্যাপ।",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

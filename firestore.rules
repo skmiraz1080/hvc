@@ -1,0 +1,68 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper function: Is user authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Helper function: Is user an Admin (verified against users collection)
+    function isAdmin() {
+      return isAuthenticated() && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    // Users collection (Max 10 members, 2 admins)
+    // - Authenticated members can read all user profiles
+    // - Users can edit only their personal profile (excluding role and uid)
+    // - Admins can update roles and member details
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.auth.uid == userId
+                    && (!('role' in request.resource.data) || request.resource.data.role == 'member' || isAdmin());
+      allow update: if isAuthenticated() && (
+        (request.auth.uid == userId && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'uid']))
+        || isAdmin()
+      );
+      allow delete: if isAdmin();
+    }
+    
+    // Monthly Deposits collection
+    // - All authenticated members can view deposit records
+    // - Only the 2 admins can create, update, or delete deposit records
+    match /deposits/{depositId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAdmin() 
+        && request.resource.data.amount is number 
+        && request.resource.data.amount >= 0
+        && request.resource.data.month is string
+        && request.resource.data.year is number;
+      allow delete: if isAdmin();
+    }
+    
+    // Business records & Profits collection
+    // - All authenticated members can view business records
+    // - Only the 2 admins can create, update, or delete business records
+    match /businesses/{businessId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAdmin() 
+        && request.resource.data.businessName is string 
+        && request.resource.data.profit is number;
+      allow delete: if isAdmin();
+    }
+    
+    // Organization Expenses collection
+    // - All authenticated members can view expenses
+    // - Only the 2 admins can create, update, or delete expenses
+    match /expenses/{expenseId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAdmin() 
+        && request.resource.data.title is string 
+        && request.resource.data.amount is number 
+        && request.resource.data.amount > 0;
+      allow delete: if isAdmin();
+    }
+  }
+}
